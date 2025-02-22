@@ -33,14 +33,27 @@ def main():
             # Process GPX file
             track_data = process_gpx_file(gpx_file_path)
 
-            # Get target time input
-            target_time = st.number_input(
-                "Enter your target time (hours)",
-                min_value=0.1,
-                max_value=48.0,
-                value=4.0,
-                step=0.1
-            )
+            # Target time selection with enhanced slider
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                # Convert hours to minutes for finer control
+                target_minutes = st.slider(
+                    "Target time",
+                    min_value=30,  # 30 minutes minimum
+                    max_value=48*60,  # 48 hours maximum
+                    value=240,  # 4 hours default
+                    step=15,  # 15-minute increments
+                )
+                target_time = target_minutes / 60  # Convert back to hours for calculations
+
+            with col2:
+                # Display formatted time
+                hours = int(target_minutes // 60)
+                minutes = int(target_minutes % 60)
+                st.metric(
+                    "Selected Time",
+                    f"{hours:02d}h {minutes:02d}m"
+                )
 
             # Calculate time estimates
             time_estimates = calculate_time_estimates(track_data, target_time)
