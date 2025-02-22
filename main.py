@@ -8,11 +8,10 @@ from components.statistics import display_statistics
 from models.database import get_db, Analysis
 import io
 
-st.set_page_config(
-    page_title="Trail Running Analysis",
-    page_icon="🏃",
-    layout="wide"
-)
+st.set_page_config(page_title="Trail Running Analysis",
+                   page_icon="🏃",
+                   layout="wide")
+
 
 def format_time(minutes: float) -> str:
     """Convert minutes to formatted time string."""
@@ -20,18 +19,19 @@ def format_time(minutes: float) -> str:
     mins = int(minutes % 60)
     return f"{hours}h{mins:02d}"
 
-def save_analysis(gpx_data: bytes, name: str, target_time: float, split_interval: float):
+
+def save_analysis(gpx_data: bytes, name: str, target_time: float,
+                  split_interval: float):
     """Save analysis to database."""
     db = next(get_db())
-    analysis = Analysis(
-        name=name,
-        gpx_file=gpx_data,
-        target_time=target_time,
-        split_interval=split_interval
-    )
+    analysis = Analysis(name=name,
+                        gpx_file=gpx_data,
+                        target_time=target_time,
+                        split_interval=split_interval)
     db.add(analysis)
     db.commit()
     return analysis.id
+
 
 def main():
     st.title("🏃 Trail Running Analysis Tool")
@@ -42,107 +42,99 @@ def main():
 
     # Check if we're loading a saved analysis
     analysis_id = st.session_state.get('analysis_id', None)
+
     if analysis_id:
         db = next(get_db())
-        analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
+        analysis = db.query(Analysis).filter(
+            Analysis.id == analysis_id).first()
         if analysis:
-            # Create temporary file from stored GPX data
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.gpx') as tmp_file:
+            with tempfile.NamedTemporaryFile(delete=False,
+                                             suffix='.gpx') as tmp_file:
                 tmp_file.write(analysis.gpx_file)
                 gpx_file_path = tmp_file.name
-
             track_data = process_gpx_file(gpx_file_path)
             uploaded_file = None
-            target_minutes = analysis.target_time
-            split_interval = analysis.split_interval
+            target_minutes = float(analysis.target_time)  # Convert to float
+            split_interval = float(analysis.split_interval)  # Convert to float
         else:
             st.error("Analysis not found")
             return
     else:
-        # File upload section
         st.header("Upload your GPX file")
         uploaded_file = st.file_uploader(
             "Drag and drop your GPX file here",
             type=['gpx'],
-            help="Upload a GPX file containing your trail route"
-        )
+            help="Upload a GPX file containing your trail route")
 
         if uploaded_file is None:
             return
 
-        # Save uploaded file to temp location
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.gpx') as tmp_file:
+        with tempfile.NamedTemporaryFile(delete=False,
+                                         suffix='.gpx') as tmp_file:
             tmp_file.write(uploaded_file.getvalue())
             gpx_file_path = tmp_file.name
 
         track_data = process_gpx_file(gpx_file_path)
-        target_minutes = 240  # Default 4 hours
-        split_interval = 5    # Default 5km
+        target_minutes = 240.0  # Explicitly set as float
+        split_interval = 5.0  # Explicitly set as float
 
     try:
-        # Create three columns for time settings
         time_col1, time_col2, time_col3 = st.columns([2, 2, 1])
 
         with time_col1:
-            target_minutes = st.slider(
-                f"Target time ({format_time(240)})",  # Default format shown
-                min_value=30,
-                max_value=48*60,
-                value=int(target_minutes),
-                step=15,
-                format=format_time
-            )
-            target_time = target_minutes / 60
+            target_minutes = float(
+                st.slider(  # Convert slider value to float
+                    f"Target time ({format_time(240)})",
+                    min_value=30,
+                    max_value=48 * 60,
+                    value=int(target_minutes),
+                    step=15,
+                    format=format_time))
+            target_time = target_minutes / 60.0  # Ensure float division
 
         with time_col2:
-            split_interval = st.selectbox(
-                "Split interval",
-                options=[1, 5, 10, 15, 20],
-                index=1 if split_interval == 5 else 0,
-                format_func=lambda x: f"{x}km",
-                help="Choose the distance interval for time estimates"
-            )
+            split_interval = float(
+                st.selectbox(  # Convert selectbox value to float
+                    "Split interval",
+                    options=[1, 5, 10, 15, 20],
+                    index=1 if split_interval == 5 else 0,
+                    format_func=lambda x: f"{x}km",
+                    help="Choose the distance interval for time estimates"))
 
         with time_col3:
-            st.metric(
-                "Selected Time",
-                format_time(target_minutes)
-            )
+            st.metric("Selected Time", format_time(target_minutes))
 
-        # Save analysis button
         if not analysis_id and uploaded_file:
             save_col1, save_col2 = st.columns([2, 1])
             with save_col1:
-                analysis_name = st.text_input("Analysis name", value="My Trail Run")
+                analysis_name = st.text_input("Analysis name",
+                                              value="My Trail Run")
             with save_col2:
                 if st.button("Save Analysis"):
                     save_analysis(
                         uploaded_file.getvalue(),
                         analysis_name,
-                        target_minutes,
-                        float(split_interval)
+                        float(target_minutes),  # Ensure float
+                        float(split_interval)  # Ensure float
                     )
                     st.success("Analysis saved!")
 
-        # Calculate time estimates with selected interval
-        time_estimates = calculate_time_estimates(track_data, target_time, float(split_interval))
+        # Calculate time estimates with explicit float conversion
+        time_estimates = calculate_time_estimates(track_data,
+                                                  float(target_time),
+                                                  float(split_interval))
 
-        # Display visualizations in columns
         col1, col2 = st.columns(2)
-
         with col1:
-            # Display map with selected split interval
             display_map(track_data, float(split_interval))
-
         with col2:
-            # Display elevation profile with time estimates
             display_elevation_profile(track_data, time_estimates)
 
-        # Display statistics
         display_statistics(track_data, time_estimates)
 
     except Exception as e:
         st.error(f"Error processing file: {str(e)}")
+
 
 if __name__ == "__main__":
     main()
