@@ -12,30 +12,50 @@ def format_time(minutes: float) -> str:
 
 def interpolate_times(time_estimates: List[Dict], distances: np.ndarray) -> np.ndarray:
     """Interpolate times for all points based on split estimates."""
-    split_distances = [est['distance'] for est in time_estimates]
-    split_times = [est['estimated_time'] for est in time_estimates]
+    if not time_estimates or len(time_estimates) < 2:
+        return np.zeros_like(distances)
+
+    split_distances = np.array([est['distance'] for est in time_estimates])
+    split_times = np.array([est['estimated_time'] for est in time_estimates])
+
+    # Handle edge cases by extending the range slightly
+    if split_distances[0] > distances[0]:
+        split_distances = np.insert(split_distances, 0, distances[0])
+        split_times = np.insert(split_times, 0, split_times[0])
+    if split_distances[-1] < distances[-1]:
+        split_distances = np.append(split_distances, distances[-1])
+        split_times = np.append(split_times, split_times[-1])
 
     # Create interpolation function
-    f = interp1d(split_distances, split_times, kind='linear', fill_value='extrapolate')
+    f = interp1d(split_distances, split_times, kind='linear', bounds_error=False, fill_value='extrapolate')
 
     # Interpolate times for all distances
-    return f(distances)
+    interpolated = f(distances)
+    return np.maximum(interpolated, 0)  # Ensure no negative times
 
 def display_elevation_profile(track_data: Dict, time_estimates: List[Dict] = None):
     """Display elevation profile using Plotly."""
     df = track_data['data']
+    distances = df['distance'].values
 
     fig = go.Figure()
 
     # Interpolate times for all points if time estimates are provided
     if time_estimates:
-        interpolated_times = interpolate_times(time_estimates, df['distance'].values)
+        try:
+            interpolated_times = interpolate_times(time_estimates, distances)
+        except Exception:
+            interpolated_times = np.zeros_like(distances)
+    else:
+        interpolated_times = np.zeros_like(distances)
 
     # Create hover text with time estimates
     hover_text = []
     for idx, row in df.iterrows():
-        time_text = (f"Est. Time: {format_time(interpolated_times[idx])}"
-                    if time_estimates else "")
+        if time_estimates and interpolated_times[idx] > 0:
+            time_text = f"Est. Time: {format_time(float(interpolated_times[idx]))}"
+        else:
+            time_text = ""
 
         hover_text.append(
             f"Distance: {row['distance']:.1f} km<br>"
