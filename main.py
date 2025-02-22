@@ -7,6 +7,7 @@ from components.elevation_profile import display_elevation_profile
 from components.statistics import display_statistics
 from models.database import get_db, Analysis
 import io
+import traceback
 
 st.set_page_config(page_title="Trail Running Analysis",
                    page_icon="🏃",
@@ -133,7 +134,11 @@ def main():
         display_statistics(track_data, time_estimates)
 
     except Exception as e:
-        st.error(f"Error processing file: {str(e)}")
+        traceback = e.__traceback__
+        while traceback:
+            st.error("{}: {}".format(traceback.tb_frame.f_code.co_filename,
+                                     traceback.tb_lineno))
+            traceback = traceback.tb_next
 
 
 if __name__ == "__main__":
