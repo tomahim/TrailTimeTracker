@@ -83,14 +83,12 @@ def main():
         time_col1, time_col2, time_col3 = st.columns([2, 2, 1])
 
         with time_col1:
-            target_minutes = float(
-                st.slider(  # Convert slider value to float
-                    f"Target time ({format_time(240)})",
-                    min_value=30,
-                    max_value=48 * 60,
-                    value=int(target_minutes),
-                    step=15,
-                    format=format_time))
+            target_minutes = st.slider(
+                f"Target time ({format_time(240)})",
+                min_value=30,
+                max_value=48 * 60,  
+                value=int(target_minutes),
+                step=15)
             target_time = target_minutes / 60.0  # Ensure float division
 
         with time_col2:
