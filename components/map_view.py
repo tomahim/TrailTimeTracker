@@ -3,17 +3,17 @@ import folium
 from streamlit_folium import folium_static
 from typing import Dict
 
-def display_map(track_data: Dict):
+def display_map(track_data: Dict, split_interval: float = 5.0):
     """Display the trail map using Folium."""
     df = track_data['data']
-    
+
     # Create the map centered on the first point
     m = folium.Map(
         location=[df['latitude'].iloc[0], df['longitude'].iloc[0]],
         zoom_start=12,
         tiles='OpenStreetMap'
     )
-    
+
     # Create the trail line
     points = [[row['latitude'], row['longitude']] for _, row in df.iterrows()]
     folium.PolyLine(
@@ -22,8 +22,8 @@ def display_map(track_data: Dict):
         color='red',
         opacity=0.8
     ).add_to(m)
-    
-    # Add markers every 5km
+
+    # Add markers at specified intervals
     distance = 0
     for _, row in df.iterrows():
         if row['distance'] >= distance:
@@ -34,7 +34,7 @@ def display_map(track_data: Dict):
                 popup=f'{distance:.1f}km',
                 fill=True
             ).add_to(m)
-            distance += 5
+            distance += split_interval
 
     # Display the map
     st.subheader("Trail Map")

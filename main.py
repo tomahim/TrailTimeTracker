@@ -33,9 +33,10 @@ def main():
             # Process GPX file
             track_data = process_gpx_file(gpx_file_path)
 
-            # Target time selection with enhanced slider
-            col1, col2 = st.columns([3, 1])
-            with col1:
+            # Create two columns for time settings
+            time_col1, time_col2, time_col3 = st.columns([2, 2, 1])
+
+            with time_col1:
                 # Convert hours to minutes for finer control
                 target_minutes = st.slider(
                     "Target time",
@@ -46,7 +47,17 @@ def main():
                 )
                 target_time = target_minutes / 60  # Convert back to hours for calculations
 
-            with col2:
+            with time_col2:
+                # Split interval selection
+                split_interval = st.selectbox(
+                    "Split interval",
+                    options=[1, 5, 10, 15, 20],
+                    index=1,  # Default to 5km
+                    format_func=lambda x: f"{x}km",
+                    help="Choose the distance interval for time estimates"
+                )
+
+            with time_col3:
                 # Display formatted time
                 hours = int(target_minutes // 60)
                 minutes = int(target_minutes % 60)
@@ -55,15 +66,15 @@ def main():
                     f"{hours:02d}h {minutes:02d}m"
                 )
 
-            # Calculate time estimates
-            time_estimates = calculate_time_estimates(track_data, target_time)
+            # Calculate time estimates with selected interval
+            time_estimates = calculate_time_estimates(track_data, target_time, float(split_interval))
 
             # Display visualizations in columns
             col1, col2 = st.columns(2)
 
             with col1:
-                # Display map
-                display_map(track_data)
+                # Display map with selected split interval
+                display_map(track_data, float(split_interval))
 
             with col2:
                 # Display elevation profile with time estimates

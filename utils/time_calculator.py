@@ -11,8 +11,8 @@ def calculate_pace_adjustment(grade: float) -> float:
         # Reduce the impact of downhill
         return 1 + (abs(grade) * 0.025)  # Reduced from 0.05
 
-def calculate_time_estimates(track_data: Dict, target_time: float) -> List[Dict]:
-    """Calculate time estimates for 5km intervals."""
+def calculate_time_estimates(track_data: Dict, target_time: float, split_interval: float = 5.0) -> List[Dict]:
+    """Calculate time estimates for given distance intervals."""
     df = track_data['data']
     total_distance = track_data['total_distance']
 
@@ -23,7 +23,7 @@ def calculate_time_estimates(track_data: Dict, target_time: float) -> List[Dict]
     # Calculate base pace (minutes per km)
     base_pace = (target_time * 60) / total_distance
 
-    # Create 5km checkpoints
+    # Create checkpoints at specified intervals
     checkpoints = []
     current_distance = 0
     accumulated_time = 0
@@ -33,7 +33,7 @@ def calculate_time_estimates(track_data: Dict, target_time: float) -> List[Dict]
     total_adjusted_time = 0
 
     while current_distance < total_distance:
-        next_distance = min(current_distance + 5, total_distance)
+        next_distance = min(current_distance + split_interval, total_distance)
         segment = df[(df['distance'] >= current_distance) & 
                     (df['distance'] <= next_distance)]
 
