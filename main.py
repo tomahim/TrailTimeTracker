@@ -14,7 +14,7 @@ st.set_page_config(
 
 def main():
     st.title("🏃 Trail Running Analysis Tool")
-    
+
     # File upload section
     st.header("Upload your GPX file")
     uploaded_file = st.file_uploader(
@@ -32,7 +32,7 @@ def main():
 
             # Process GPX file
             track_data = process_gpx_file(gpx_file_path)
-            
+
             # Get target time input
             target_time = st.number_input(
                 "Enter your target time (hours)",
@@ -47,14 +47,14 @@ def main():
 
             # Display visualizations in columns
             col1, col2 = st.columns(2)
-            
+
             with col1:
                 # Display map
                 display_map(track_data)
-                
+
             with col2:
-                # Display elevation profile
-                display_elevation_profile(track_data)
+                # Display elevation profile with time estimates
+                display_elevation_profile(track_data, time_estimates)
 
             # Display statistics
             display_statistics(track_data, time_estimates)
